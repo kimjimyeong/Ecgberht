@@ -11,6 +11,7 @@ public class UnitInfoCalculations {
     private static final int PROTOSS_SHIELD_REGEN = 7;
     private static final int ZERG_REGEN = 4;
 
+
     public static int getExpectedHealth(UnitInfo unitInfo) {
         PlayerUnit unit = unitInfo.unit;
         int lastVisibleFrame = unitInfo.lastVisibleFrame;

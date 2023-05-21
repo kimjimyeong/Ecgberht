@@ -19,8 +19,6 @@ import static ecgberht.Ecgberht.getGs;
 
 public class UnitInfo implements Comparable<UnitInfo> {
 
-    private static final int PROTOSSSHIELDREGEN = 7;
-    private static final int ZERGREGEN = 4;
     public double groundRange = 0.0;
     public double airRange = 0.0;
     public double speed = 0.0;
@@ -60,6 +58,7 @@ public class UnitInfo implements Comparable<UnitInfo> {
     public UnitInfoDistance toUnitInfoDistance(){
         return new UnitInfoDistance(this);
     }
+
 
     // TODO completion frames
     void update() {
