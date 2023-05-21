@@ -44,7 +44,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
             SimInfo airSim = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.AIR);
             airAttackers = airSim.enemies;
             for (UnitInfo u : airAttackers) {
-                double predictedDist = unitInfo.getPredictedDistance(u);
+                double predictedDist = unitInfo.toUnitInfoDistance().getPredictedDistance(u);
                 if (predictedDist < bestDist) {
                     closestThreat = u;
                     bestDist = predictedDist;
@@ -62,7 +62,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
                             UtilMicro.move(unit, kitePos);
                             return false;
                         }
-                    } else if (harassed != null && unitInfo.getDistance(harassed) <= myWeapon.maxRange()) {
+                    } else if (harassed != null && unitInfo.toUnitInfoDistance().getDistance(harassed) <= myWeapon.maxRange()) {
                         UtilMicro.attack(unitInfo, harassed);
                     } else UtilMicro.attack(unitInfo, closestThreat);
                     return false;
@@ -104,7 +104,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         double maxScore = Double.MIN_VALUE;
         for (UnitInfo u : mainTargets) {
             //if (!u.unit.exists()) continue;
-            double dist = unitInfo.getDistance(u);
+            double dist = unitInfo.toUnitInfoDistance().getDistance(u);
             double score = u.unitType.isWorker() ? 5 : (u.unitType == UnitType.Zerg_Overlord ? 8 : 1);
             WeaponType weapon = Util.getWeapon(unitInfo, u);
             score *= dist <= weapon.maxRange() ? 1.4 : 0.9;
