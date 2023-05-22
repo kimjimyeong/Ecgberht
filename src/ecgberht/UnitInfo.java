@@ -60,7 +60,6 @@ public class UnitInfo implements Comparable<UnitInfo> {
     }
 
 
-    // TODO completion frames
     void update() {
         UnitInfoUpdate.updatePlayer(this);
         UnitInfoUpdate.updateUnitType(this);

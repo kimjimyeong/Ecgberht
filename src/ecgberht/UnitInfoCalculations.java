@@ -7,7 +7,9 @@ import org.openbw.bwapi4j.type.Race;
 import static ecgberht.Ecgberht.getGs;
 
 public class UnitInfoCalculations {
-
+    private UnitInfoCalculations() {
+        throw new IllegalStateException("Utility class");
+    }
     private static final int PROTOSS_SHIELD_REGEN = 7;
     private static final int ZERG_REGEN = 4;
 

@@ -9,6 +9,10 @@ import static ecgberht.Ecgberht.getGs;
 
 public class UnitInfoUpdate {
 
+    private UnitInfoUpdate() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static void updatePlayer(UnitInfo unitInfo) {
         unitInfo.player = unitInfo.unit.getPlayer();
     }
