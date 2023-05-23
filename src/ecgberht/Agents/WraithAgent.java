@@ -103,9 +103,16 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         UnitInfo chosen = null;
         double maxScore = Double.MIN_VALUE;
         for (UnitInfo u : mainTargets) {
-            //if (!u.unit.exists()) continue;
             double dist = unitInfo.toUnitInfoDistance().getDistance(u);
-            double score = u.unitType.isWorker() ? 5 : (u.unitType == UnitType.Zerg_Overlord ? 8 : 1);
+            double score;
+            if (u.unitType.isWorker()) {
+                score = 5;
+            } else if (u.unitType == UnitType.Zerg_Overlord) {
+                score = 8;
+            } else {
+                score = 1;
+            }
+
             WeaponType weapon = Util.getWeapon(unitInfo, u);
             score *= dist <= weapon.maxRange() ? 1.4 : 0.9;
             score *= (double) u.unitType.maxHitPoints() / (double) u.health;
