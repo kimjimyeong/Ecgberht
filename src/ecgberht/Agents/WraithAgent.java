@@ -1,5 +1,7 @@
 package ecgberht.Agents;
 
+import com.sun.org.slf4j.internal.Logger;
+import com.sun.org.slf4j.internal.LoggerFactory;
 import ecgberht.Simulation.SimInfo;
 import ecgberht.UnitInfo;
 import ecgberht.Util.Util;
@@ -18,8 +20,10 @@ import java.util.TreeSet;
 
 import static ecgberht.Ecgberht.getGs;
 
+
 public class WraithAgent extends Agent implements Comparable<Unit> {
 
+    private static final Logger logger = LoggerFactory.getLogger(WraithAgent.class);
     public Wraith unit;
     public String name;
     private Set<UnitInfo> airAttackers = new TreeSet<>();
@@ -31,7 +35,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
     }
 
     @Override
-    public boolean runAgent() { // TODO improve
+    public boolean runAgent() {
         try {
             if (!unit.exists() || unitInfo == null) return true;
             actualFrame = getGs().frameCount;
@@ -43,6 +47,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
             double bestDist = Double.MAX_VALUE;
             SimInfo airSim = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.AIR);
             airAttackers = airSim.enemies;
+            // find bestDist for airSim
             for (UnitInfo u : airAttackers) {
                 double predictedDist = unitInfo.toUnitInfoDistance().getPredictedDistance(u);
                 if (predictedDist < bestDist) {
@@ -50,12 +55,15 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
                     bestDist = predictedDist;
                 }
             }
+            // chosenTarget attack
             Set<UnitInfo> mainTargets = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.MIX).enemies;
             UnitInfo harassed = chooseHarassTarget(mainTargets);
             if (closestThreat != null) {
+                // check enemies are flying or ground
                 Weapon myWeapon = closestThreat.flying ? unit.getAirWeapon() : unit.getGroundWeapon();
                 double hisAirWeaponRange = closestThreat.airRange;
                 Position kitePos = UtilMicro.kiteAway(unit, new TreeSet<>(Collections.singleton(closestThreat)));
+                // check enemies are bounded in weapon range
                 if (myWeapon.maxRange() > hisAirWeaponRange && bestDist > hisAirWeaponRange) {
                     if (myWeapon.cooldown() != 0) {
                         if (kitePos != null) {
@@ -89,8 +97,7 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
             }
             return false;
         } catch (Exception e) {
-            System.err.println("Exception WraithAgent");
-            e.printStackTrace();
+            logger.error("Exception occurred in WraithAgent", e);
         }
         return false;
     }
@@ -99,30 +106,38 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         return Util.chooseAttackPosition(unit.getPosition(), true);
     }
 
-    private UnitInfo chooseHarassTarget(Set<UnitInfo> mainTargets) {
-        UnitInfo chosen = null;
-        double maxScore = Double.MIN_VALUE;
-        for (UnitInfo u : mainTargets) {
-            double dist = unitInfo.toUnitInfoDistance().getDistance(u);
-            double score;
-            if (u.unitType.isWorker()) {
-                score = 5;
-            } else if (u.unitType == UnitType.Zerg_Overlord) {
-                score = 8;
-            } else {
-                score = 1;
-            }
+    private double calculateHarassTargetScore(UnitInfo u){
+        double unitDistance = unitInfo.toUnitInfoDistance().getDistance(u);
+        double harassTargetScore;
+        if (u.unitType.isWorker()) {
+            harassTargetScore = 5;
+        } else if (u.unitType == UnitType.Zerg_Overlord) {
+            harassTargetScore = 8;
+        } else {
+            harassTargetScore = 1;
+        }
 
-            WeaponType weapon = Util.getWeapon(unitInfo, u);
-            score *= dist <= weapon.maxRange() ? 1.4 : 0.9;
-            score *= (double) u.unitType.maxHitPoints() / (double) u.health;
-            if (chosen == null || maxScore < score) {
-                chosen = u;
-                maxScore = score;
+        WeaponType weapon = Util.getWeapon(unitInfo, u);
+        harassTargetScore *= unitDistance <= weapon.maxRange() ? 1.4 : 0.9;
+        harassTargetScore *= (double) u.unitType.maxHitPoints() / (double) u.health;
+
+        return harassTargetScore;
+    }
+
+    private UnitInfo chooseHarassTarget(Set<UnitInfo> mainTargets) {
+        UnitInfo harassTargerChosen = null;
+        double maxScore = Double.MIN_VALUE;
+
+        for (UnitInfo u : mainTargets) {
+            double harassTargetScore = calculateHarassTargetScore(u);
+            if (harassTargerChosen == null || maxScore < harassTargetScore) {
+                harassTargerChosen = u;
+                maxScore = harassTargetScore;
             }
         }
-        return chosen;
+        return harassTargerChosen;
     }
+
 
     @Override
     public boolean equals(Object o) {
