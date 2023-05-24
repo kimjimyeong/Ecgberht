@@ -21,7 +21,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.jetbrains:annotations:20.1.0'
     compile fileTree(dir: 'lib', include: ['*.jar'], exclude: ['*-javadoc.jar'])
     implementation('com.google.code.gson:gson:2.8.6')
     implementation('com.github.luben:zstd-jni:1.4.4-4:win_x86')

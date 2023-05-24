@@ -1,5 +1,6 @@
 package ecgberht.Agents;
 
+import bwem.util.Pair;
 import com.sun.org.slf4j.internal.Logger;
 import com.sun.org.slf4j.internal.LoggerFactory;
 import ecgberht.Simulation.SimInfo;
@@ -34,57 +35,29 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         this.name = name;
     }
 
+
     @Override
     public boolean runAgent() {
         try {
             if (!unit.exists() || unitInfo == null) return true;
             actualFrame = getGs().frameCount;
             frameLastOrder = unit.getLastCommandFrame();
-            airAttackers.clear();
             if (frameLastOrder == actualFrame) return false;
+            airAttackers.clear();
             Position attack = getBestBaseToHarass();
-            UnitInfo closestThreat = null;
-            double bestDist = Double.MAX_VALUE;
-            SimInfo airSim = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.AIR);
-            airAttackers = airSim.enemies;
-            // find bestDist for airSim
-            for (UnitInfo u : airAttackers) {
-                double predictedDist = unitInfo.toUnitInfoDistance().getPredictedDistance(u);
-                if (predictedDist < bestDist) {
-                    closestThreat = u;
-                    bestDist = predictedDist;
-                }
-            }
-            // chosenTarget attack
+
+            Pair<UnitInfo, Double> resultFindClosestTreatAndBestDist = findClosestTreatAndBestDist();
+            UnitInfo closestThreat = resultFindClosestTreatAndBestDist.getFirst();
+            double bestDist = resultFindClosestTreatAndBestDist.getSecond();
             Set<UnitInfo> mainTargets = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.MIX).enemies;
-            UnitInfo harassed = chooseHarassTarget(mainTargets);
+            UnitInfo harassTarget = chooseHarassTarget(mainTargets);
             if (closestThreat != null) {
-                // check enemies are flying or ground
-                Weapon myWeapon = closestThreat.flying ? unit.getAirWeapon() : unit.getGroundWeapon();
-                double hisAirWeaponRange = closestThreat.airRange;
-                Position kitePos = UtilMicro.kiteAway(unit, new TreeSet<>(Collections.singleton(closestThreat)));
-                // check enemies are bounded in weapon range
-                if (myWeapon.maxRange() > hisAirWeaponRange && bestDist > hisAirWeaponRange) {
-                    if (myWeapon.cooldown() != 0) {
-                        if (kitePos != null) {
-                            UtilMicro.move(unit, kitePos);
-                            return false;
-                        }
-                    } else if (harassed != null && unitInfo.toUnitInfoDistance().getDistance(harassed) <= myWeapon.maxRange()) {
-                        UtilMicro.attack(unitInfo, harassed);
-                    } else UtilMicro.attack(unitInfo, closestThreat);
-                    return false;
-                }
-                if (kitePos != null) {
-                    UtilMicro.move(unit, kitePos);
-                    return false;
-                }
+                wraithAttackClosestThreat(closestThreat, harassTarget, bestDist);
             }
-            if (harassed != null) {
-                UtilMicro.attack(unitInfo, harassed);
+            if (harassTarget != null) {
+                UtilMicro.attack(unitInfo, harassTarget);
                 return false;
             }
-
             UnitInfo target = Util.getRangedTarget(unitInfo, mainTargets);
             if (target != null) {
                 UtilMicro.attack(unitInfo, target);
@@ -100,6 +73,44 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
             logger.error("Exception occurred in WraithAgent", e);
         }
         return false;
+    }
+
+
+    private Pair<UnitInfo, Double> findClosestTreatAndBestDist(){
+        UnitInfo closestThreat = null;
+        double bestDist = Double.MAX_VALUE;
+        SimInfo airSim = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.AIR);
+        airAttackers = airSim.enemies;
+        for (UnitInfo u : airAttackers) {
+            double predictedDist = unitInfo.toUnitInfoDistance().getPredictedDistance(u);
+            if (predictedDist < bestDist) {
+                closestThreat = u;
+                bestDist = predictedDist;
+            }
+        }
+        return new Pair<>(closestThreat, bestDist);
+    }
+
+    private void wraithAttackClosestThreat(UnitInfo closestThreat, UnitInfo harassTarget, double bestDist){
+        Weapon myWeapon = closestThreat.flying ? unit.getAirWeapon() : unit.getGroundWeapon();
+        double hisAirWeaponRange = closestThreat.airRange;
+        Position kitePos = UtilMicro.kiteAway(unit, new TreeSet<>(Collections.singleton(closestThreat)));
+        // check enemies are bounded in weapon range
+        if (myWeapon.maxRange() > hisAirWeaponRange && bestDist > hisAirWeaponRange) {
+            if (myWeapon.cooldown() != 0) {
+                if (kitePos != null) {
+                    UtilMicro.move(unit, kitePos);
+                    return;
+                }
+            } else if (harassTarget != null && unitInfo.toUnitInfoDistance().getDistance(harassTarget) <= myWeapon.maxRange()) {
+                UtilMicro.attack(unitInfo, harassTarget);
+            } else UtilMicro.attack(unitInfo, closestThreat);
+            return;
+        }
+        if (kitePos != null) {
+            UtilMicro.move(unit, kitePos);
+            return;
+        }
     }
 
     private Position getBestBaseToHarass() {
