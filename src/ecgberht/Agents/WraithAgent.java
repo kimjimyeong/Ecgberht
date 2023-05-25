@@ -35,7 +35,6 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         this.name = name;
     }
 
-
     @Override
     public boolean runAgent() {
         try {
@@ -44,13 +43,15 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
             frameLastOrder = unit.getLastCommandFrame();
             if (frameLastOrder == actualFrame) return false;
             airAttackers.clear();
-            Position attack = getBestBaseToHarass();
 
+            Position attack = getBestBaseToHarass();
             Pair<UnitInfo, Double> resultFindClosestTreatAndBestDist = findClosestTreatAndBestDist();
             UnitInfo closestThreat = resultFindClosestTreatAndBestDist.getFirst();
             double bestDist = resultFindClosestTreatAndBestDist.getSecond();
+
             Set<UnitInfo> mainTargets = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.MIX).enemies;
             UnitInfo harassTarget = chooseHarassTarget(mainTargets);
+
             if (closestThreat != null) {
                 wraithAttackClosestThreat(closestThreat, harassTarget, bestDist);
             }
@@ -75,7 +76,6 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         return false;
     }
 
-
     private Pair<UnitInfo, Double> findClosestTreatAndBestDist(){
         UnitInfo closestThreat = null;
         double bestDist = Double.MAX_VALUE;
@@ -95,12 +95,10 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         Weapon myWeapon = closestThreat.flying ? unit.getAirWeapon() : unit.getGroundWeapon();
         double hisAirWeaponRange = closestThreat.airRange;
         Position kitePos = UtilMicro.kiteAway(unit, new TreeSet<>(Collections.singleton(closestThreat)));
-        // check enemies are bounded in weapon range
         if (myWeapon.maxRange() > hisAirWeaponRange && bestDist > hisAirWeaponRange) {
             if (myWeapon.cooldown() != 0) {
                 if (kitePos != null) {
                     UtilMicro.move(unit, kitePos);
-                    return;
                 }
             } else if (harassTarget != null && unitInfo.toUnitInfoDistance().getDistance(harassTarget) <= myWeapon.maxRange()) {
                 UtilMicro.attack(unitInfo, harassTarget);
@@ -109,7 +107,6 @@ public class WraithAgent extends Agent implements Comparable<Unit> {
         }
         if (kitePos != null) {
             UtilMicro.move(unit, kitePos);
-            return;
         }
     }
 

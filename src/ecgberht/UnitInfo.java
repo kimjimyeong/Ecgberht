@@ -59,7 +59,6 @@ public class UnitInfo implements Comparable<UnitInfo> {
         return new UnitInfoDistance(this);
     }
 
-
     void update() {
         UnitInfoUpdate.updatePlayer(this);
         UnitInfoUpdate.updateUnitType(this);

@@ -3,6 +3,7 @@ package ecgberht.Agents;
 import ecgberht.Simulation.SimInfo;
 import ecgberht.Squad;
 import ecgberht.UnitInfo;
+import ecgberht.UnitInfoDistance;
 import ecgberht.Util.Util;
 import ecgberht.Util.UtilMicro;
 import org.openbw.bwapi4j.Position;
@@ -29,6 +30,7 @@ public class VesselAgent extends Agent implements Comparable<Unit> {
     public VesselAgent(Unit unit) {
         super(unit);
         this.unit = (ScienceVessel) unit;
+
     }
 
     public String statusToString() {
