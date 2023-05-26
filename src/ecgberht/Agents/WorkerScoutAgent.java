@@ -238,21 +238,37 @@ public class WorkerScoutAgent extends Agent {
 
     private Position getNextPosition() {
         if (currentVertex == -1) {
-            int closestPolygonIndex = getClosestVertexIndex();
-            if (closestPolygonIndex == -1) return getGs().getPlayer().getStartLocation().toPosition();
-            currentVertex = closestPolygonIndex;
-            return enemyBaseBorders.get(closestPolygonIndex);
+            return handleClosestPolygonVertex();
         }
-        if (currentVertex == enemyNaturalIndex && getGs().getGame().getBWMap().isVisible(getGs().enemyNaturalBase.getLocation())) {
-            currentVertex = (currentVertex + 1) % enemyBaseBorders.size();
-            return enemyBaseBorders.get(currentVertex);
+        if (currentVertex == enemyNaturalIndex && isEnemyNaturalVisible()) {
+            return handleEnemyNaturalVertex();
         }
+        return handleDistClosestVertex();
+    }
+
+    private Position handleClosestPolygonVertex(){
+        int closestPolygonIndex = getClosestVertexIndex();
+        if (closestPolygonIndex == -1) return getGs().getPlayer().getStartLocation().toPosition();
+        currentVertex = closestPolygonIndex;
+        return enemyBaseBorders.get(closestPolygonIndex);
+    }
+
+    private Position handleEnemyNaturalVertex() {
+        currentVertex = (currentVertex + 1) % enemyBaseBorders.size();
+        return enemyBaseBorders.get(currentVertex);
+    }
+
+    private Position handleDistClosestVertex(){
         double distanceFromCurrentVertex = enemyBaseBorders.get(currentVertex).getDistance(unit.getPosition());
         while (distanceFromCurrentVertex < 128) {
             currentVertex = (currentVertex + 1) % enemyBaseBorders.size();
             distanceFromCurrentVertex = enemyBaseBorders.get(currentVertex).getDistance(unit.getPosition());
         }
         return enemyBaseBorders.get(currentVertex);
+    }
+
+    private boolean isEnemyNaturalVisible() {
+        return getGs().getGame().getBWMap().isVisible(getGs().enemyNaturalBase.getLocation());
     }
 
     private int getClosestVertexIndex() {
@@ -275,22 +291,40 @@ public class WorkerScoutAgent extends Agent {
     private void updateBorders() {
         final Area enemyRegion = enemyBase.getArea();
         if (enemyRegion == null) return;
+
         final Position enemyCenter = enemyBase.getLocation().toPosition().add(new Position(64, 48));
-        final List<TilePosition> closestTobase = new ArrayList<>(BuildingMap.tilesArea.get(enemyRegion));
+        List<Position> unsortedVertices = findUnsortedVertices(enemyRegion, enemyCenter);
+        List<Position> sortedVertices = sortVertices(unsortedVertices);
+
+        int distanceThreshold = 100;
+        sortedVertices = refineVertices(sortedVertices, distanceThreshold);
+
+        enemyBaseBorders = sortedVertices;
+        currentVertex = 0;
+
+        if (!getGs().learningManager.isNaughty()) {
+            Base enemyNatural = getGs().enemyNaturalBase;
+            if (enemyNatural != null) {
+                Position enemyNaturalPos = enemyNatural.getLocation().toPosition();
+                int index = getClosestVertexIndex();
+                enemyBaseBorders.add(index, enemyNaturalPos);
+                this.enemyNaturalIndex = index;
+            }
+        } else {
+            enemyNaturalIndex = -1;
+            removedIndex = true;
+        }
+    }
+
+
+    private List<Position> findUnsortedVertices(Area enemyRegion, Position enemyCenter){
         List<Position> unsortedVertices = new ArrayList<>();
-        for (TilePosition tp : closestTobase) {
-            if (getGs().bwem.getMap().getArea(tp) != enemyRegion) continue;
-            TilePosition right = new TilePosition(tp.getX() + 1, tp.getY());
-            TilePosition bottom = new TilePosition(tp.getX(), tp.getY() + 1);
-            TilePosition left = new TilePosition(tp.getX() - 1, tp.getY());
-            TilePosition up = new TilePosition(tp.getX(), tp.getY() - 1);
-            final boolean edge =
-                    (!getGs().getGame().getBWMap().isValidPosition(right) || getGs().bwem.getMap().getArea(right) != enemyRegion || !getGs().getGame().getBWMap().isBuildable(right))
-                            || (!getGs().getGame().getBWMap().isValidPosition(bottom) || getGs().bwem.getMap().getArea(bottom) != enemyRegion || !getGs().getGame().getBWMap().isBuildable(bottom))
-                            || (!getGs().getGame().getBWMap().isValidPosition(left) || getGs().bwem.getMap().getArea(left) != enemyRegion || !getGs().getGame().getBWMap().isBuildable(left))
-                            || (!getGs().getGame().getBWMap().isValidPosition(up) || getGs().bwem.getMap().getArea(up) != enemyRegion || !getGs().getGame().getBWMap().isBuildable(up));
-            if (edge && getGs().getGame().getBWMap().isBuildable(tp)) {
-                Position vertex = tp.toPosition().add(new Position(16, 16));
+        for (TilePosition tp : BuildingMap.tilesArea.get(enemyRegion)) {
+            if (shouldSkipTilePosition(tp, enemyRegion)) continue;
+
+            boolean isEdge = isEdgeTile(tp, enemyRegion);
+            if (isEdge) {
+                Position vertex =  tp.toPosition().add(new Position(16, 16));
                 double dist = enemyCenter.getDistance(vertex);
                 if (dist > 368.0) {
                     double pullBy = Math.min(dist - 368.0, 120.0);
@@ -303,18 +337,23 @@ public class WorkerScoutAgent extends Agent {
                         vertex = new Position((int) x, (int) y);
                     }
                 }
-                if (getGs().getGame().getBWMap().isValidPosition(vertex) && getGs().getGame().getBWMap().isWalkable(vertex.toWalkPosition()))
+                if (isWalkable(vertex)) {
                     unsortedVertices.add(vertex);
+                }
             }
         }
+        return unsortedVertices;
+    }
+
+    private List<Position> sortVertices(List<Position> unsortedVertices) {
         List<Position> sortedVertices = new ArrayList<>();
         Position current = unsortedVertices.get(0);
-        enemyBaseBorders.add(current);
+        sortedVertices.add(current);
         unsortedVertices.remove(current);
         while (!unsortedVertices.isEmpty()) {
-            double bestDist = 1000000;
+            double bestDist = Double.POSITIVE_INFINITY;
             Position bestPos = null;
-            for (final Position pos : unsortedVertices) {
+            for (Position pos : unsortedVertices) {
                 double dist = pos.getDistance(current);
                 if (dist < bestDist) {
                     bestDist = dist;
@@ -322,11 +361,13 @@ public class WorkerScoutAgent extends Agent {
                 }
             }
             current = bestPos;
-            sortedVertices.add(sortedVertices.size(), bestPos);
+            sortedVertices.add(bestPos);
             unsortedVertices.remove(bestPos);
         }
+        return sortedVertices;
+    }
 
-        int distanceThreshold = 100;
+    private List<Position> refineVertices(List<Position> sortedVertices, int distanceThreshold) {
         while (true) {
             int maxFarthest = 0;
             int maxFarthestStart = 0;
@@ -350,33 +391,43 @@ public class WorkerScoutAgent extends Agent {
             if (maxFarthest < 4) break;
             List<Position> temp = new ArrayList<>();
             for (int s = maxFarthestEnd; s != maxFarthestStart; s = (s + 1) % sortedVertices.size()) {
-                temp.add(temp.size(), sortedVertices.get(s));
+                temp.add(sortedVertices.get(s));
             }
             sortedVertices = temp;
         }
-        enemyBaseBorders = sortedVertices;
-        currentVertex = 0;
-        if (!getGs().learningManager.isNaughty()) {
-            Base enemyNatural = getGs().enemyNaturalBase;
-            if (enemyNatural != null) {
-                Position enemyNaturalPos = enemyNatural.getLocation().toPosition();
-                int index = -1;
-                double distMax = Double.MAX_VALUE;
-                for (int ii = 0; ii < enemyBaseBorders.size(); ii++) {
-                    double dist = Util.getGroundDistance(enemyBaseBorders.get(ii), enemyNaturalPos);
-                    if (index == -1 || dist < distMax) {
-                        index = ii;
-                        distMax = dist;
-                    }
-                }
-                enemyBaseBorders.add(index, enemyNaturalPos);
-                this.enemyNaturalIndex = index;
-            }
-        } else {
-            enemyNaturalIndex = -1;
-            removedIndex = true;
-        }
+        return sortedVertices;
     }
+
+    private boolean shouldSkipTilePosition(TilePosition tilePosition, Area enemyRegion) {
+        return getGs().bwem.getMap().getArea(tilePosition) != enemyRegion;
+    }
+
+    private boolean isEdgeTile(TilePosition tp, Area enemyRegion) {
+        TilePosition right = new TilePosition(tp.getX() + 1, tp.getY());
+        TilePosition bottom = new TilePosition(tp.getX(), tp.getY() + 1);
+        TilePosition left = new TilePosition(tp.getX() - 1, tp.getY());
+        TilePosition up = new TilePosition(tp.getX(), tp.getY() - 1);
+
+        boolean isRightEdge = !isValidAndBuildable(right, enemyRegion);
+        boolean isBottomEdge = !isValidAndBuildable(bottom, enemyRegion);
+        boolean isLeftEdge = !isValidAndBuildable(left, enemyRegion);
+        boolean isUpEdge = !isValidAndBuildable(up, enemyRegion);
+
+        return isRightEdge || isBottomEdge || isLeftEdge || isUpEdge;
+    }
+
+    private boolean isValidAndBuildable(TilePosition tilePosition, Area enemyRegion) {
+        return getGs().getGame().getBWMap().isValidPosition(tilePosition)
+                && getGs().bwem.getMap().getArea(tilePosition) == enemyRegion
+                && getGs().getGame().getBWMap().isBuildable(tilePosition);
+    }
+
+
+    private boolean isWalkable(Position position) {
+        return getGs().getGame().getBWMap().isValidPosition(position)
+                && getGs().getGame().getBWMap().isWalkable(position.toWalkPosition());
+    }
+
 
     enum Status {
         EXPLORE, DISRUPTING, IDLE, PROXYING
