@@ -193,47 +193,64 @@ public class WorkerScoutAgent extends Agent {
 
     private Status chooseNewStatus() {
         if (status == Status.DISRUPTING) {
-            if (finishedDisrupting || (stoppedDisrupting && !unitInfo.attackers.isEmpty() && mySim.lose))
-                return Status.EXPLORE;
-            return Status.DISRUPTING;
+            return chooseNewStatusForDisrupting();
         }
         if (status == Status.PROXYING) {
-            if (proxyTile == null) {
-                ableToProxy = false;
-            } else {
-                if (proxier != null && proxier.isCompleted()) {
-                    ableToProxy = false;
-                    getGs().proxyBuilding = proxier;
-                } else {
-                    double dist = unitInfo.tileposition.getDistance(proxyTile);
-                    if (dist <= 3) {
-                        if (!unitInfo.attackers.isEmpty()) {
-                            if (proxier != null && proxier.isBeingConstructed()) {
-                                unit.haltConstruction();
-                                ableToProxy = false;
-                                proxier.cancelConstruction();
-                                proxier = null;
-                                return Status.EXPLORE;
-                            }
-                        }
-                    }
-                    return Status.PROXYING;
-                }
-            }
+            return chooseNewStatusForProxying();
         }
-        if (finishedDisrupting) return Status.EXPLORE;
-        String strat = getGs().getStrat().name;
-        if (getGs().luckyDraw >= 0.7 && ableToProxy && strat.equals("TwoPortWraith") && !getGs().learningManager.isNaughty() && !getGs().MBs.isEmpty() && !getGs().refineriesAssigned.isEmpty()) {
+        if (finishedDisrupting) {
+            return Status.EXPLORE;
+        }
+        String start = getGs().getStrat().name;
+        if (getGs().luckyDraw >= 0.7 && ableToProxy && start.equals("TwoPortWraith") && !getGs().learningManager.isNaughty() && !getGs().MBs.isEmpty() && !getGs().refineriesAssigned.isEmpty()) {
             return Status.PROXYING;
         }
-        if (getGs().luckyDraw >= 0.35 || strat.equals("BioGreedyFE") || strat.equals("MechGreedyFE")
-                || strat.equals("BioMechGreedyFE") || strat.equals("ProxyBBS") || strat.equals("ProxyEightRax") || getGs().learningManager.isNaughty())
+        if (getGs().luckyDraw >= 0.35 || start.equals("BioGreedyFE") || start.equals("MechGreedyFE")
+                || start.equals("BioMechGreedyFE") || start.equals("ProxyBBS") || start.equals("ProxyEightRax") || getGs().learningManager.isNaughty()) {
             return Status.EXPLORE;
-        if (getGs().enemyRace != Race.Zerg || stoppedDisrupting || finishedDisrupting) return Status.EXPLORE;
+        }
+        if (getGs().enemyRace != Race.Zerg || stoppedDisrupting || finishedDisrupting) {
+            return Status.EXPLORE;
+        }
         if (IntelligenceAgency.getNumEnemyBases(getGs().getIH().enemy()) == 1 && currentVertex == enemyNaturalIndex) {
             return Status.DISRUPTING;
         }
         return Status.EXPLORE;
+    }
+
+    private Status chooseNewStatusForDisrupting() {
+        if (finishedDisrupting || (stoppedDisrupting && !unitInfo.attackers.isEmpty() && mySim.lose)) {
+            return Status.EXPLORE;
+        }
+        return Status.DISRUPTING;
+    }
+
+    private Status chooseNewStatusForProxying() {
+        if (proxyTile == null) {
+            ableToProxy = false;
+        } else {
+            if (proxier != null && proxier.isCompleted()) {
+                ableToProxy = false;
+                getGs().proxyBuilding = proxier;
+            } else {
+                if (shouldHaltConstructionAndCancel()) {
+                    return Status.EXPLORE;
+                }
+            }
+        }
+        return Status.PROXYING;
+    }
+
+    private boolean shouldHaltConstructionAndCancel() {
+        double dist = unitInfo.tileposition.getDistance(proxyTile);
+        if (dist <= 3 && !unitInfo.attackers.isEmpty() && proxier != null && proxier.isBeingConstructed()) {
+            unit.haltConstruction();
+            ableToProxy = false;
+            proxier.cancelConstruction();
+            proxier = null;
+            return true;
+        }
+        return false;
     }
 
     private Position getNextPosition() {
@@ -317,32 +334,36 @@ public class WorkerScoutAgent extends Agent {
     }
 
 
-    private List<Position> findUnsortedVertices(Area enemyRegion, Position enemyCenter){
+    private List<Position> findUnsortedVertices(Area enemyRegion, Position enemyCenter) {
         List<Position> unsortedVertices = new ArrayList<>();
         for (TilePosition tp : BuildingMap.tilesArea.get(enemyRegion)) {
             if (shouldSkipTilePosition(tp, enemyRegion)) continue;
 
-            boolean isEdge = isEdgeTile(tp, enemyRegion);
-            if (isEdge) {
-                Position vertex =  tp.toPosition().add(new Position(16, 16));
-                double dist = enemyCenter.getDistance(vertex);
-                if (dist > 368.0) {
-                    double pullBy = Math.min(dist - 368.0, 120.0);
-                    if (vertex.getX() == enemyCenter.getX()) {
-                        vertex = vertex.add(new Position(0, vertex.getY() > enemyCenter.getY() ? (int) (-pullBy) : (int) pullBy));
-                    } else {
-                        double m = (double) (enemyCenter.getY() - vertex.getY()) / (double) (enemyCenter.getX() - vertex.getX());
-                        double x = vertex.getX() + (vertex.getX() > enemyCenter.getX() ? -1.0 : 1.0) * pullBy / (Math.sqrt(1 + m * m));
-                        double y = m * (x - vertex.getX()) + vertex.getY();
-                        vertex = new Position((int) x, (int) y);
-                    }
+            Position vertex = tp.toPosition().add(new Position(16, 16));
+            double dist = enemyCenter.getDistance(vertex);
+
+            if (isEdgeTile(tp, enemyRegion) && dist > 368.0) {
+                double pullBy = Math.min(dist - 368.0, 120.0);
+                if (vertex.getX() == enemyCenter.getX()) {
+                    int verticalPull = vertex.getY() > enemyCenter.getY() ? (int) (-pullBy) : (int) pullBy;
+                    vertex = vertex.add(new Position(0, verticalPull));
+                } else {
+                    vertex = calculateVertexPosition(pullBy, vertex, enemyCenter);
                 }
+
                 if (isWalkable(vertex)) {
                     unsortedVertices.add(vertex);
                 }
             }
         }
         return unsortedVertices;
+    }
+
+    private Position calculateVertexPosition(double pullBy, Position vertex, Position enemyCenter) {
+        double m = (double) (enemyCenter.getY() - vertex.getY()) / (double) (enemyCenter.getX() - vertex.getX());
+        double x = vertex.getX() + (vertex.getX() > enemyCenter.getX() ? -1.0 : 1.0) * pullBy / (Math.sqrt(1 + m * m));
+        double y = m * (x - vertex.getX()) + vertex.getY();
+        return new Position((int) x, (int) y);
     }
 
     private List<Position> sortVertices(List<Position> unsortedVertices) {
