@@ -77,32 +77,18 @@ public class WorkerScoutAgent extends Agent {
     }
 
     public boolean runAgent() {
-        if (unit == null || !unit.exists() || unitInfo == null || !getGs().firstScout) {
-            if (disrupter != null) getGs().disrupterBuilding = disrupter;
-            getGs().firstScout = false;
-            if (getGs().proxyBuilding != null && !getGs().proxyBuilding.isCompleted())
-                getGs().proxyBuilding.cancelConstruction();
-            return true;
-        }
-        if (status == Status.EXPLORE && getGs().getStrat().proxy && mySim.allies.stream().anyMatch(u -> u.unit instanceof Marine)) {
-            getGs().myArmy.add(unitInfo);
-            getGs().firstScout = false;
-            if (getGs().proxyBuilding != null && !getGs().proxyBuilding.isCompleted())
-                getGs().proxyBuilding.cancelConstruction();
-            return true;
-        }
-        if (enemyBaseBorders.isEmpty()) updateBorders();
+        if (shouldExitEarly()) return true;
+
+        if (shouldAddToArmy()) return true;
+
+        updateBorders();
         mySim = getGs().sim.getSimulation(unitInfo, SimInfo.SimType.GROUND);
-        if (enemyNaturalIndex != -1 && (IntelligenceAgency.getEnemyStrat() == IntelligenceAgency.EnemyStrats.EarlyPool
-                || IntelligenceAgency.getEnemyStrat() == IntelligenceAgency.EnemyStrats.ZealotRush
-                || getGs().learningManager.isNaughty() || getGs().basicCombatUnitsDetected(mySim.enemies)
-                || IntelligenceAgency.getNumEnemyBases(getGs().getIH().enemy()) > 1)) {
-            enemyBaseBorders.remove(enemyNaturalIndex);
-            enemyNaturalIndex = -1;
-            removedIndex = true;
-        }
+
+        handleEnemyBaseBorders();
+
         status = chooseNewStatus();
         cancelDisrupter();
+
         switch (status) {
             case EXPLORE:
                 followPerimeter();
@@ -112,13 +98,70 @@ public class WorkerScoutAgent extends Agent {
                 break;
             case PROXYING:
                 proxy();
+                break;
             case IDLE:
                 break;
         }
-        if (disrupter != null)
-            getGs().getGame().getMapDrawer().drawTextMap(disrupter.getPosition().add(new Position(0, -16)), ColorUtil.formatText("BM!", ColorUtil.White));
+
+        drawDisrupterText();
         return false;
     }
+
+    private boolean shouldExitEarly() {
+        if (unit == null || !unit.exists() || unitInfo == null || !getGs().firstScout) {
+            if (disrupter != null) {
+                getGs().disrupterBuilding = disrupter;
+            }
+            getGs().firstScout = false;
+            if (getGs().proxyBuilding != null && !getGs().proxyBuilding.isCompleted()) {
+                getGs().proxyBuilding.cancelConstruction();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private boolean shouldAddToArmy() {
+        if (status == Status.EXPLORE && getGs().getStrat().proxy && mySim.allies.stream().anyMatch(u -> u.unit instanceof Marine)) {
+            getGs().myArmy.add(unitInfo);
+            getGs().firstScout = false;
+            if (getGs().proxyBuilding != null && !getGs().proxyBuilding.isCompleted()) {
+                getGs().proxyBuilding.cancelConstruction();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void handleEnemyBaseBorders() {
+        if (enemyBaseBorders.isEmpty()) {
+            updateBorders();
+        }
+
+        if (shouldRemoveEnemyNaturalIndex()) {
+            enemyBaseBorders.remove(enemyNaturalIndex);
+            enemyNaturalIndex = -1;
+            removedIndex = true;
+        }
+    }
+
+    private boolean shouldRemoveEnemyNaturalIndex() {
+        return enemyNaturalIndex != -1 && (
+                IntelligenceAgency.getEnemyStrat() == IntelligenceAgency.EnemyStrats.EarlyPool ||
+                        IntelligenceAgency.getEnemyStrat() == IntelligenceAgency.EnemyStrats.ZealotRush ||
+                        getGs().learningManager.isNaughty() ||
+                        getGs().basicCombatUnitsDetected(mySim.enemies) ||
+                        IntelligenceAgency.getNumEnemyBases(getGs().getIH().enemy()) > 1
+        );
+    }
+
+    private void drawDisrupterText() {
+        if (disrupter != null) {
+            getGs().getGame().getMapDrawer().drawTextMap(disrupter.getPosition().add(new Position(0, -16)), ColorUtil.formatText("BM!", ColorUtil.White));
+        }
+    }
+
+
 
     private void cancelDisrupter() {
         if (stoppedDisrupting && disrupter != null && disrupter.getHitPoints() <= 20) {
@@ -150,46 +193,51 @@ public class WorkerScoutAgent extends Agent {
                 unit.build(getGs().enemyNaturalBase.getLocation(), UnitType.Terran_Engineering_Bay);
             }
         } else if (disrupter.getRemainingBuildTime() <= 25) {
-            unit.haltConstruction();
-            finishedDisrupting = true;
-            stoppedDisrupting = true;
-            removedIndex = true;
-        } else if (!stoppedDisrupting) {
-            if (mySim.enemies.stream().anyMatch(u -> unitInfo.toUnitInfoDistance().getDistance(u) <= 4 * 32)) {
-                if (mySim.enemies.stream().anyMatch(u -> u.unit instanceof Zergling)) {
-                    unit.haltConstruction();
-                    stoppedDisrupting = true;
-                    if (!removedIndex) {
-                        enemyBaseBorders.remove(enemyNaturalIndex);
-                        enemyNaturalIndex = -1;
-                        removedIndex = true;
-                    }
-                    return;
-                }
-                if (mySim.enemies.size() == 1) {
-                    UnitInfo closest = mySim.enemies.iterator().next();
-                    Area enemyArea = getGs().bwem.getMap().getArea(closest.tileposition);
-                    if (closest.unit instanceof Drone && enemyArea != null && enemyArea.equals(getGs().enemyNaturalArea)) {
-                        if (mySim.lose) {
-                            unit.haltConstruction();
-                            stoppedDisrupting = true;
-                            if (!removedIndex) {
-                                enemyBaseBorders.remove(enemyNaturalIndex);
-                                enemyNaturalIndex = -1;
-                                removedIndex = true;
-                            }
-                        }
-                    }
-                }
-            }
-        } else if (mySim.enemies.isEmpty() && disrupter != null && !finishedDisrupting) unit.resumeBuilding(disrupter);
-        else if (!mySim.enemies.isEmpty() && (unitInfo.attackers.isEmpty() || !mySim.lose)) {
-            UnitInfo target = Util.getRangedTarget(unitInfo, mySim.enemies);
-            if (target != null) UtilMicro.attack(unitInfo, target);
-            else if (disrupter != null && !finishedDisrupting) unit.resumeBuilding(disrupter);
+            haltDisruption();
+        } else if (!stoppedDisrupting && shouldStopDisruption()) {
+            haltDisruption();
+            return;
+        } else if (shouldStopDisruptionBasedOnEnemyArea()) {
+            haltDisruption();
+        } else if (shouldResumeBuilding()) {
+            resumeBuilding();
         }
-        if (disrupter != null && !finishedDisrupting) unit.resumeBuilding(disrupter);
     }
+
+    private void haltDisruption() {
+        unit.haltConstruction();
+        finishedDisrupting = true;
+        stoppedDisrupting = true;
+        removedIndex = true;
+    }
+
+    private boolean shouldStopDisruption() {
+        return mySim.enemies.stream()
+                .anyMatch(u -> u.unit instanceof Zergling && unitInfo.toUnitInfoDistance().getDistance(u) <= 4 * 32);
+    }
+
+    private boolean shouldStopDisruptionBasedOnEnemyArea() {
+        if (mySim.enemies.size() != 1) {
+            return false;
+        }
+        UnitInfo closest = mySim.enemies.iterator().next();
+        Area enemyArea = getGs().bwem.getMap().getArea(closest.tileposition);
+        return closest.unit instanceof Drone
+                && enemyArea != null
+                && enemyArea.equals(getGs().enemyNaturalArea)
+                && mySim.lose;
+    }
+
+    private boolean shouldResumeBuilding() {
+        return mySim.enemies.isEmpty()
+                && disrupter != null
+                && !finishedDisrupting;
+    }
+
+    private void resumeBuilding() {
+        unit.resumeBuilding(disrupter);
+    }
+
 
     private Status chooseNewStatus() {
         if (status == Status.DISRUPTING) {
