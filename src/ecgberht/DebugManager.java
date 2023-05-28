@@ -3,6 +3,8 @@ package ecgberht;
 import bwem.Base;
 import bwem.ChokePoint;
 import bwem.Mineral;
+import cameraModule.CameraModule;
+import cameraModule.CameraModuleFactory;
 import cameraModule.CameraModuleImpl;
 import ecgberht.Agents.*;
 import ecgberht.Util.ColorUtil;
@@ -22,12 +24,14 @@ public class DebugManager {
 
     private MapDrawer mapDrawer;
     private InteractionHandler iH;
-    private CameraModuleImpl skycladObserver;
+    private TilePosition startPos;
+    protected BW game;
+    private CameraModule skycladObserver;
     TextSetting _textsetting;
-    DebugManager(MapDrawer mapDrawer, InteractionHandler iH, CameraModuleImpl skycladObserver) {
+    DebugManager(MapDrawer mapDrawer, InteractionHandler iH, TilePosition startPos, BW game) {
         this.mapDrawer = mapDrawer;
         this.iH = iH;
-        this.skycladObserver = skycladObserver;
+        this.skycladObserver = CameraModuleFactory.createCameraModule(startPos, game);
     }
 
     public void keyboardInteraction(String text) {
@@ -298,7 +302,7 @@ public abstract class TextSetting{
     //setting_debugText
     private String setting_debugText = "ConfigManager.getConfig().ecgConfig." + setting_name+"= !setting;"
 
-    public void doInteraction(CameraModuleImpl skycladObserver){
+    public void doInteraction(CameraModule skycladObserver){
         exec(setting_ConfigManager);
         Util.sendText(!setting ? sending_Text_enabled : sending_Text_disabled );
         exec(setting_debugText);
@@ -322,7 +326,7 @@ public class TextSetting_obs extends TextSetting{
     sending_name = "Observer";
 
     @Override
-    public void doInteraction(CameraModuleImpl skycladObserver){
+    public void doInteraction(CameraModule skycladObserver){
         super.doInteraction()
         skycladObserver.toggle();
     }

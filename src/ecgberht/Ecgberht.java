@@ -2,6 +2,8 @@ package ecgberht;
 
 import bwem.BWEM;
 import bwem.Base;
+import cameraModule.CameraModule;
+import cameraModule.CameraModuleFactory;
 import cameraModule.CameraModuleImpl;
 import ecgberht.Agents.DropShipAgent;
 import ecgberht.Agents.VesselAgent;
@@ -71,10 +73,11 @@ public class Ecgberht implements BWEventListener {
     private BehavioralTree scoutingTree;
     private BehavioralTree islandTree;
     private boolean first = false;
+    private TilePosition startpos;
     private Player self;
     private BWEM bwem = null;
     private DebugManager debugManager = null;
-    private CameraModuleImpl skycladObserver = null;
+    private CameraModule skycladObserver = null;
     private CherryVisDumper cherryVisDumper;
     private org.bk.ass.path.Result path;
 
@@ -342,9 +345,9 @@ public class Ecgberht implements BWEventListener {
                 ConfigManager.getConfig().ecgConfig.sscait = true;
             }
             self = bw.getInteractionHandler().self();
-            skycladObserver = new CameraModuleImpl(self.getStartLocation(), bw);
+            skycladObserver = CameraModuleFactory.createCameraModule(startpos, bw);
             ih = bw.getInteractionHandler();
-            debugManager = new DebugManager(bw.getMapDrawer(), bw.getInteractionHandler(), skycladObserver);
+            debugManager = new DebugManager(bw.getMapDrawer(), bw.getInteractionHandler(),startpos, bw);
             IntelligenceAgency.onStartIntelligenceAgency(ih.enemy());
             if (!ConfigManager.getConfig().ecgConfig.enableLatCom) ih.enableLatCom(false);
             else ih.enableLatCom(true);
