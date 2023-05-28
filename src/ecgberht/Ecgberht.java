@@ -2,7 +2,7 @@ package ecgberht;
 
 import bwem.BWEM;
 import bwem.Base;
-import cameraModule.CameraModule;
+import cameraModule.CameraModuleImpl;
 import ecgberht.Agents.DropShipAgent;
 import ecgberht.Agents.VesselAgent;
 import ecgberht.Agents.VultureAgent;
@@ -74,7 +74,7 @@ public class Ecgberht implements BWEventListener {
     private Player self;
     private BWEM bwem = null;
     private DebugManager debugManager = null;
-    private CameraModule skycladObserver = null;
+    private CameraModuleImpl skycladObserver = null;
     private CherryVisDumper cherryVisDumper;
     private org.bk.ass.path.Result path;
 
@@ -342,7 +342,7 @@ public class Ecgberht implements BWEventListener {
                 ConfigManager.getConfig().ecgConfig.sscait = true;
             }
             self = bw.getInteractionHandler().self();
-            skycladObserver = new CameraModule(self.getStartLocation(), bw);
+            skycladObserver = new CameraModuleImpl(self.getStartLocation(), bw);
             ih = bw.getInteractionHandler();
             debugManager = new DebugManager(bw.getMapDrawer(), bw.getInteractionHandler(), skycladObserver);
             IntelligenceAgency.onStartIntelligenceAgency(ih.enemy());
