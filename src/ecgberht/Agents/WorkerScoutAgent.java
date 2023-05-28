@@ -196,7 +196,6 @@ public class WorkerScoutAgent extends Agent {
             haltDisruption();
         } else if (!stoppedDisrupting && shouldStopDisruption()) {
             haltDisruption();
-            return;
         } else if (shouldStopDisruptionBasedOnEnemyArea()) {
             haltDisruption();
         } else if (shouldResumeBuilding()) {
