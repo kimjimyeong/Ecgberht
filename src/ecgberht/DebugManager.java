@@ -4,6 +4,8 @@ import bwem.Base;
 import bwem.ChokePoint;
 import bwem.Mineral;
 import cameraModule.CameraModule;
+import cameraModule.CameraModuleFactory;
+import cameraModule.CameraModuleImpl;
 import ecgberht.Agents.*;
 import ecgberht.Util.ColorUtil;
 import ecgberht.Util.MutablePair;
@@ -22,17 +24,19 @@ public class DebugManager {
 
     private MapDrawer mapDrawer;
     private InteractionHandler iH;
+    private TilePosition startPos;
+    protected BW game;
     private CameraModule skycladObserver;
     TextSetting _textsetting;
-    DebugManager(MapDrawer mapDrawer, InteractionHandler iH, CameraModule skycladObserver) {
+    DebugManager(MapDrawer mapDrawer, InteractionHandler iH, TilePosition startPos, BW game) {
         this.mapDrawer = mapDrawer;
         this.iH = iH;
-        this.skycladObserver = skycladObserver;
+        this.skycladObserver = CameraModuleFactory.createCameraModule(startPos, game);
     }
 
     public void keyboardInteraction(String text) {
         setInteractionText(text);
-        _textsetting.doInteraction(CameraModule skycladObserver);
+        _textsetting.doInteraction(skycladObserver);
     }
     
     public void setInteractionText(String text){
