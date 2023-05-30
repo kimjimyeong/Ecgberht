@@ -17,7 +17,7 @@ public class CherryVisDumper {
     private GameState gameState;
     private TraceData traceData;
     private final String dir = "bwapi-data/write/cherryvis";
-    private Writing writeJSONCompressed = new JsonCompressed();
+    private Writing writing = new Writing();
 
     public CherryVisDumper(GameState gameState) {
         this.gameState = gameState;
@@ -66,8 +66,8 @@ public class CherryVisDumper {
         String path = getDumpDirectory(opponentName);
         if (path != null) {
             Util.sendText("Writing traceData to: " + path);
-            writeJSONCompressed.setWriteStrategy(new WriteJsonCompressedStrategy());
-            writeJSONCompressed.write(traceData, path + "trace.json");
+            writing.setWriteStrategy(new WriteJsonCompressedStrategy());
+            writing.write(traceData, path + "trace.json");
         }
     }
 
