@@ -10,6 +10,7 @@ import ecgberht.Util.ColorUtil;
 import ecgberht.Util.Util;
 import ecgberht.Util.UtilMicro;
 import org.bk.ass.path.Result;
+import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.WalkPosition;
@@ -388,5 +389,11 @@ public class WorkerScoutAgent extends Agent {
         if (status == Status.PROXYING) return "Proxying";
         if (status == Status.IDLE) return "Idle";
         return "None";
+    }
+
+    @Override
+    public void drawAgentOnMap(Agent agent, MapDrawer mapDrawer) {
+        WorkerScoutAgent worker = (WorkerScoutAgent) agent;
+        mapDrawer.drawTextMap(worker.myUnit.getPosition().add(new Position(-16, UnitType.Terran_SCV.dimensionUp())), ColorUtil.formatText(agent.statusToString(), ColorUtil.White));
     }
 }
