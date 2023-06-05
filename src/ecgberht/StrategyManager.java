@@ -303,7 +303,7 @@ public class StrategyManager {
                     Strategy randomStrategy = this.getRandomStrategy();
                     Util.sendText("Picked random strategy " + randomStrategy.name);
                     return randomStrategy;
-                } else if (nameStrat.containsKey(forcedStrat)) {
+                } else if (nameOfStrategies.containsKey(forcedStrat)) {
                     Util.sendText("Picked forced strategy " + forcedStrat);
                     if (forcedStrat.equals("14CC")) {
                         for (EnemyInfo.StrategyOpponentHistory r : EI.history) {
@@ -313,7 +313,7 @@ public class StrategyManager {
                             }
                         }
                     }
-                    return nameStrat.get(forcedStrat);
+                    return nameOfStrategies.get(forcedStrat);
                 }
             }
             final boolean isHumanMode = ConfigManager.getConfig().ecgConfig.humanMode;

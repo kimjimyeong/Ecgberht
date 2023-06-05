@@ -470,7 +470,7 @@ public class SimulationTheory {
         if (s.enemies.isEmpty()) return true;
         for (UnitInfo e : s.enemies) {
             boolean isThreat = Util.canAttack(e, u);
-            if (isThreat && u.getDistance(e) <= (!melee ? 32 : 96) + Util.getAttackRange(e, u)) return false;
+            if (isThreat && u.toUnitInfoDistance().getDistance(e) <= (!melee ? 32 : 96) + Util.getAttackRange(e, u)) return false;
         }
         return true;
     }
