@@ -346,11 +346,11 @@ public class VesselAgent extends Agent implements Comparable<Unit> {
 
 }
 
-public abstract class VesselAttack{
-    private String target;
-    private String oldTarget;
-    private UnitInfo unitInfo;
-    private ScienceVessel unit;
+abstract class VesselAttack{
+    protected Unit target;
+    protected Unit oldTarget;
+    protected UnitInfo unitInfo;
+    protected ScienceVessel unit;
 
     private DoAttackToTargetStrategy doAttackToTargetStrategy;
     private IsOldTargetDeadStrategy isOldTargetDeadStrategy;
@@ -395,11 +395,11 @@ public abstract class VesselAttack{
     }
 }
 
-public interface DoAttackToTargetStrategy{
+interface DoAttackToTargetStrategy{
     public abstract void doAttackToTarget();
 }
 
-public class EmpDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+class EmpDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
     public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         if (unitInfo.currentOrder == Order.CastEMPShockwave) {
             if (target != null && oldTarget != null && !target.equals(oldTarget)) {
@@ -415,7 +415,7 @@ public class EmpDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
         return oldTarget;
     }
 }
-public class IrradiateDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+class IrradiateDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
     public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         if (unitInfo.currentOrder == Order.CastIrradiate) {
             if (target != null && oldTarget != null && !target.equals(oldTarget)) {
@@ -431,7 +431,7 @@ public class IrradiateDoAttackToTargetStrategy implements DoAttackToTargetStrate
         return oldTarget;
     }
 }
-public class dMatrixDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+class dMatrixDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
     public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         if (unitInfo.currentOrder == Order.CastDefensiveMatrix) {
             if (target != null && oldTarget != null && !target.equals(oldTarget)) {
@@ -447,24 +447,24 @@ public class dMatrixDoAttackToTargetStrategy implements DoAttackToTargetStrategy
         return oldTarget;
     }
 }
-public interface IsOldTargetDeadStrategy{
+interface IsOldTargetDeadStrategy{
     public abstract void isOldTargetDead();
 }
-public class EmpIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+class EmpIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
     public Unit isOldTargetDeadStrategy(Unit oldTarget){
         if (oldTarget != null && (!oldTarget.exists() || ((PlayerUnit) oldTarget).getShields() <= 1)) oldTarget = null;
 
         return oldTarget;
     }
 }
-public class IrrediateIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+class IrrediateIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
     public Unit isOldTargetDeadStrategy(Unit oldTarget){
         if (oldTarget != null && (!oldTarget.exists() || ((PlayerUnit) oldTarget).isIrradiated())) oldTarget = null;
 
         return oldTarget;
     }
 }
-public class dMatrixIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+class dMatrixIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
     public Unit isOldTargetDeadStrategy(Unit oldTarget){
         if (oldTarget != null && (!oldTarget.exists() || ((MobileUnit) oldTarget).isDefenseMatrixed()))
             oldTarget = null;
@@ -473,29 +473,29 @@ public class dMatrixIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
     }
 }
 
-public interface IsTargetDeadStrategy{
+interface IsTargetDeadStrategy{
     public abstract void iSTargetDead();
 }
-public class EmpIsTargetDeadStrategy implements IsTargetDeadStrategy{
+class EmpIsTargetDeadStrategy implements IsTargetDeadStrategy{
     public Unit isTargetDeadStrategy(Unit Target){
         if (target != null && (!target.exists() || ((PlayerUnit) target).getShields() <= 1)) target = null;
         return target;
     }
 }
-public class IrradiateIsTargetDeadStrategy implements IsTargetDeadStrategy{
+class IrradiateIsTargetDeadStrategy implements IsTargetDeadStrategy{
     public Unit isTargetDeadStrategy(Unit Target){
         if (target != null && (!target.exists() || ((PlayerUnit) target).isIrradiated())) target = null;
         return target;
     }
 }
-public class DMatrixIsTargetDeadStrategy implements IsTargetDeadStrategy{
+class DMatrixIsTargetDeadStrategy implements IsTargetDeadStrategy{
     public Unit isTargetDeadStrategy(Unit Target){
         if (target != null && (!target.exists() || ((MobileUnit) target).isDefenseMatrixed())) target = null;
         return target;
     }
 }
 
-public class Emp extends VesselAttack{
+class Emp extends VesselAttack{
     public Emp(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         super(unitInfo,target,oldTarget,unit);
         setDoAttackToTargetStrategy(new EmpDoAttackToTargetStrategy());
@@ -513,7 +513,7 @@ public class Emp extends VesselAttack{
     }
 }
 
-public class Irradiate extends VesselAttack{
+class Irradiate extends VesselAttack{
     public Irradiate(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         super(unitInfo,target,oldTarget,unit);
         setDoAttackToTargetStrategy(new IrradiateDoAttackToTargetStrategy());
@@ -531,7 +531,7 @@ public class Irradiate extends VesselAttack{
     }
 }
 
-public class DMatrix extends VesselAttack{
+class DMatrix extends VesselAttack{
     public DMatrix(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
         super(unitInfo,target,oldTarget,unit);
         setDoAttackToTargetStrategy(new DMatrixDoAttackToTargetStrategy());
@@ -548,11 +548,3 @@ public class DMatrix extends VesselAttack{
         oldTarget = getIsTargetDeadStrategy().isTargetDeadStrategy(Target);
     }
 }
-
-
-
-
-
-
-
-
