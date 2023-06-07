@@ -321,7 +321,7 @@ public class StrategyManager {
 			if (isHumanMode && isRandomLtFive) {
                 return this.getRandomStrategy();
             }
-            if (getGs().enemyRace == Race.Zerg && enemyInfo.naughty) return fullBio;
+            if (getGs().enemyRace == Race.Zerg && EI.naughty) return fullBio;
             final boolean checkTempMapHash = getGs().bw.getBWMap().mapHash().equals("6f5295624a7e3887470f3f2e14727b1411321a67");
 			if (checkTempMapHash) {
                 getGs().maxWraiths = 200;
