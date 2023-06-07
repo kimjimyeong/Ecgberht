@@ -83,6 +83,7 @@ public class SimulationTheory {
                 }
                 break;
             case Terran:
+
                 boolean is_exist_strategy = getGs().getStrategyFromManager() != null;
                 boolean is_proxy_strategy = getGs().getStrategyFromManager().getProxy();
                 boolean is_equal_TurretMissile_AttackRange = radius == UnitType.Terran_Missile_Turret.airWeapon().maxRange();
@@ -127,6 +128,7 @@ public class SimulationTheory {
         List<UnitInfo> enemyUnits = new ArrayList<>();
 
         for (UnitInfo u : getGs().unitStorage.getEnemyUnits().values()) {
+
 
             boolean is_proxy_strategy = getGs().getStrategyFromManager().getProxy();
             boolean is_less_than_four_seconds = getGs().frameCount - u.lastVisibleFrame <= 24 * 4;
