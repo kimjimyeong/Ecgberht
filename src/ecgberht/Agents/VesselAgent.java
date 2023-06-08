@@ -61,21 +61,21 @@ public class VesselAgent extends Agent implements Comparable<Unit> {
                 retreat();
                 return false;
             }
-            if(status == Status.DMATRIX) statusChange_DMATRIX();
-            else if(status == Status.IRRADIATE) statusChange_IRRADIATE();
-            else if(status == Status.EMP) statusChange_EMP();
+            if(status == DMATRIX) statusChange_DMATRIX();
+            else if(status == IRRADIATE) statusChange_IRRADIATE();
+            else if(status == EMP) statusChange_EMP();
        
    
             center = follow.getSquadCenter();
             getNewStatus();
 
-            if(status == Status.IRRADIATE) irradiate();
-            else if(status == Status.DMATRIX) dMatrix();
-            else if(status == Status.KITE) kite();
-            else if(status == Status.FOLLOW) followSquad();
-            else if(status == Status.RETREAT) retreat();
-            else if(status == Status.HOVER) hover();
-            else if(status == Status.EMP) emp();
+            if(status == IRRADIATE) irradiate();
+            else if(status == DMATRIX) dMatrix();
+            else if(status == KITE) kite();
+            else if(status == FOLLOW) followSquad();
+            else if(status == RETREAT) retreat();
+            else if(status == HOVER) hover();
+            else if(status == EMP) emp();
 
             return false;
         } catch (Exception e) {
@@ -346,3 +346,205 @@ public class VesselAgent extends Agent implements Comparable<Unit> {
 
 }
 
+abstract class VesselAttack{
+    protected Unit target;
+    protected Unit oldTarget;
+    protected UnitInfo unitInfo;
+    protected ScienceVessel unit;
+
+    private DoAttackToTargetStrategy doAttackToTargetStrategy;
+    private IsOldTargetDeadStrategy isOldTargetDeadStrategy;
+    private IsTargetDeadStrategy isTargetDeadStrategy;
+
+    public VesselAttack(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        this.unitInfo = unitInfo;
+        this.target = target;
+        this.oldTarget = oldTarget;
+        this.unit = unit;
+    }
+    
+    abstract public void doAttackToTarget();
+    abstract public void isOldTargetDead();
+    abstract public void isTargetDead();
+
+    public void setDoAttackToTargetStrategy(DoAttackToTargetStrategy doAttackToTargetStrategy){
+        this.doAttackToTargetStrategy = doAttackToTargetStrategy;
+    }
+    public DoAttackToTargetStrategy getDoAttackToTargetStrategy(){
+        return doAttackToTargetStrategy;
+    }
+    public void setIsOldTargetDeadStrategy(IsOldTargetDeadStrategy isOldTargetDeadStrategy){
+        this.isOldTargetDeadStrategy = isOldTargetDeadStrategy;
+    }
+    public IsOldTargetDeadStrategy getIsOldTargetDeadStrategy(){
+        return isOldTargetDeadStrategy;
+    }
+    public void setIsTargetDeadStrategy(IsTargetDeadStrategy isTargetDeadStrategy){
+        this.isTargetDeadStrategy = isTargetDeadStrategy;
+    }
+    public IsTargetDeadStrategy getIsTargetDeadStrategy(){
+        return isTargetDeadStrategy;
+    }
+
+
+    public Unit getTarget(){
+        return target;
+    }
+    public Unit getOldTarget(){
+        return oldTarget;
+    }
+}
+
+interface DoAttackToTargetStrategy{
+    public abstract void doAttackToTarget();
+}
+
+class EmpDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+    public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        if (unitInfo.currentOrder == Order.CastEMPShockwave) {
+            if (target != null && oldTarget != null && !target.equals(oldTarget)) {
+                UtilMicro.emp(unit, target.getPosition());
+                getGs().wizard.addEMPed(unit, (PlayerUnit) target);
+                oldTarget = target;
+            }
+        } else if (target != null && target.exists() && unitInfo.currentOrder != Order.CastEMPShockwave) {
+            UtilMicro.emp(unit, target.getPosition());
+            getGs().wizard.addEMPed(unit, (PlayerUnit) target);
+            oldTarget = target;
+        }
+        return oldTarget;
+    }
+}
+class IrradiateDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+    public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        if (unitInfo.currentOrder == Order.CastIrradiate) {
+            if (target != null && oldTarget != null && !target.equals(oldTarget)) {
+                UtilMicro.irradiate(unit, (PlayerUnit) target);
+                getGs().wizard.addIrradiated(unit, (PlayerUnit) target);
+                oldTarget = target;
+            }
+        } else if (target != null && target.exists() && unitInfo.currentOrder != Order.CastIrradiate) {
+            UtilMicro.irradiate(unit, (PlayerUnit) target);
+            getGs().wizard.addIrradiated(unit, (PlayerUnit) target);
+            oldTarget = target;
+        }
+        return oldTarget;
+    }
+}
+class dMatrixDoAttackToTargetStrategy implements DoAttackToTargetStrategy{
+    public Unit doAttackToTarget(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        if (unitInfo.currentOrder == Order.CastDefensiveMatrix) {
+            if (target != null && oldTarget != null && !target.equals(oldTarget)) {
+                UtilMicro.defenseMatrix(unit, (MobileUnit) target);
+                getGs().wizard.addDefenseMatrixed(unit, (MobileUnit) target);
+                oldTarget = target;
+            }
+        } else if (target != null && target.exists() && unitInfo.currentOrder != Order.CastDefensiveMatrix) {
+            UtilMicro.defenseMatrix(unit, (MobileUnit) target);
+            getGs().wizard.addDefenseMatrixed(unit, (MobileUnit) target);
+            oldTarget = target;
+        }
+        return oldTarget;
+    }
+}
+interface IsOldTargetDeadStrategy{
+    public abstract void isOldTargetDead();
+}
+class EmpIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+    public Unit isOldTargetDeadStrategy(Unit oldTarget){
+        if (oldTarget != null && (!oldTarget.exists() || ((PlayerUnit) oldTarget).getShields() <= 1)) oldTarget = null;
+
+        return oldTarget;
+    }
+}
+class IrrediateIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+    public Unit isOldTargetDeadStrategy(Unit oldTarget){
+        if (oldTarget != null && (!oldTarget.exists() || ((PlayerUnit) oldTarget).isIrradiated())) oldTarget = null;
+
+        return oldTarget;
+    }
+}
+class dMatrixIsOldTargetDeadStrategy implements IsOldTargetDeadStrategy{
+    public Unit isOldTargetDeadStrategy(Unit oldTarget){
+        if (oldTarget != null && (!oldTarget.exists() || ((MobileUnit) oldTarget).isDefenseMatrixed()))
+            oldTarget = null;
+
+        return oldTarget;
+    }
+}
+
+interface IsTargetDeadStrategy{
+    public abstract void iSTargetDead();
+}
+class EmpIsTargetDeadStrategy implements IsTargetDeadStrategy{
+    public Unit isTargetDeadStrategy(Unit Target){
+        if (target != null && (!target.exists() || ((PlayerUnit) target).getShields() <= 1)) target = null;
+        return target;
+    }
+}
+class IrradiateIsTargetDeadStrategy implements IsTargetDeadStrategy{
+    public Unit isTargetDeadStrategy(Unit Target){
+        if (target != null && (!target.exists() || ((PlayerUnit) target).isIrradiated())) target = null;
+        return target;
+    }
+}
+class DMatrixIsTargetDeadStrategy implements IsTargetDeadStrategy{
+    public Unit isTargetDeadStrategy(Unit Target){
+        if (target != null && (!target.exists() || ((MobileUnit) target).isDefenseMatrixed())) target = null;
+        return target;
+    }
+}
+
+class Emp extends VesselAttack{
+    public Emp(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        super(unitInfo,target,oldTarget,unit);
+        setDoAttackToTargetStrategy(new EmpDoAttackToTargetStrategy());
+        setIsOldTargetDeadStrategy( new EmpIsOldTargetDeadStrategy());
+        setIsTargetDeadStrategy( new EmpIsTargetDeadStrategy() );
+    }
+    public void doAttackToTarget(){
+        oldTarget = getDoAttackToTargetStrategy().doAttackToTarget(unitInfo,target,oldTarget,unit);
+    }
+    public void isOldTargetDead(){
+        oldTarget = getIsOldTargetDeadStrategy().isOldTargetDeadStrategy(oldTarget);
+    }
+    public void isTargetDead(){
+        oldTarget = getIsTargetDeadStrategy().isTargetDeadStrategy(Target);
+    }
+}
+
+class Irradiate extends VesselAttack{
+    public Irradiate(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        super(unitInfo,target,oldTarget,unit);
+        setDoAttackToTargetStrategy(new IrradiateDoAttackToTargetStrategy());
+        setIsOldTargetDeadStrategy( new IrradiateIsOldTargetDeadStrategy());
+        setIsTargetDeadStrategy( new IrradiateIsTargetDeadStrategy() );
+    }
+    public void doAttackToTarget(){
+        oldTarget = getDoAttackToTargetStrategy().doAttackToTarget(unitInfo,target,oldTarget,unit);
+    }
+    public void isOldTargetDead(){
+        oldTarget = getIsOldTargetDeadStrategy().isOldTargetDeadStrategy(oldTarget);
+    }
+    public void isTargetDead(){
+        oldTarget = getIsTargetDeadStrategy().isTargetDeadStrategy(Target);
+    }
+}
+
+class DMatrix extends VesselAttack{
+    public DMatrix(UnitInfo unitInfo, Unit target, Unit oldTarget, ScienceVessel unit){
+        super(unitInfo,target,oldTarget,unit);
+        setDoAttackToTargetStrategy(new DMatrixDoAttackToTargetStrategy());
+        setIsOldTargetDeadStrategy( new DMatrixIsOldTargetDeadStrategy());
+        setIsTargetDeadStrategy( new DMatrixIsTargetDeadStrategy() );
+    }
+    public void doAttackToTarget(){
+        oldTarget = getDoAttackToTargetStrategy().doAttackToTarget(unitInfo,target,oldTarget,unit);
+    }
+    public void isOldTargetDead(){
+        oldTarget = getIsOldTargetDeadStrategy().isOldTargetDeadStrategy(oldTarget);
+    }
+    public void isTargetDead(){
+        oldTarget = getIsTargetDeadStrategy().isTargetDeadStrategy(Target);
+    }
+}
