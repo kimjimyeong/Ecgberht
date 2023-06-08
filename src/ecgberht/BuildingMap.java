@@ -161,7 +161,7 @@ public class BuildingMap implements Cloneable {
     private String[][] fillMap(String[][] map) {
         int height = map.length;
         int width = map[0].length;
-        for (int map_x = height - 1; map_x >= 0; jj--) {
+        for (int map_x = height - 1; map_x >= 0; map_x--) {
             if (!map[map_x][width - 1].equals("M") && !map[map_x][width - 1].equals("V") && !map[map_x][width - 1].equals("0")
                     && !map[map_x][width - 1].equals("E") && !map[map_x][width - 1].equals("B")
                     && (map_x == this.height - 1 || width - 1 == this.width - 1)) {

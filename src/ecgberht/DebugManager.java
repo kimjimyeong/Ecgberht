@@ -338,7 +338,7 @@ class TextSetting_obs extends TextSetting{
     }
     @Override
     public void doInteraction(CameraModule skycladObserver){
-        super.doInteraction()
+        super.doInteraction(skycladObserver);
         skycladObserver.toggle();
     }
 }

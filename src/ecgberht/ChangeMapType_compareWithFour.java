@@ -1,5 +1,4 @@
-
-
+package ecgberht;
 
 public class ChangeMapType_compareWithFour extends ChangeMapType{
     public ChangeMapType_compareWithFour(int map_height, int map_width, String[][] mapping){
