@@ -1,12 +1,25 @@
 package ecgberht;
 
 
+
 import org.junit.jupiter.api.BeforeEach;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+
 import org.junit.jupiter.api.Test;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+
+
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +38,9 @@ class UnitInfoDistanceTest {
         unitInfoDistance = new UnitInfoDistance(unitInfo);
     }
 
+
+
+
     @Test
     void testGetDistanceUnitAndDiStance(){
         int expectedDistance = 13;
@@ -32,6 +48,10 @@ class UnitInfoDistanceTest {
         assertEquals(expectedDistance, unitInfoDistance.getDistance(new Position(20, 20)));;
         assertEquals(expectedDistance2, unitInfoDistance.getDistance(new Position(40, 40)));
     }
+
+
+
+
 
     @Test
     void testGetDistanceUnitAndUnit(){
@@ -46,6 +66,7 @@ class UnitInfoDistanceTest {
         assertEquals(expectedDistance, unitInfoDistance.getDistance(unit1));
         assertEquals(expectedDistance2, unitInfoDistance.getDistance(unit2));
     }
+
 
     @Test
     void testGetDistanceUnitAndUnitInfo(){
@@ -62,6 +83,7 @@ class UnitInfoDistanceTest {
         int expectedDistance2 = 0;
         assertEquals(expectedDistance2, unitInfoDistance.getDistance(targetInfo));
     }
+
 
     @Test
     void testGetPredictedDistanceUnitAndUnitInfoWithoutFrame(){
