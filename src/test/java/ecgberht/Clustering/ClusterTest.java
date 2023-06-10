@@ -9,6 +9,7 @@ import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,9 +50,17 @@ class ClusterTest {
 
         cluster.updateCentroid();
 
-        Assertions.assertEquals(expectedX, cluster.modeX);
-        Assertions.assertEquals(expectedY, cluster.modeY);
+        assertEquals(expectedX, cluster.modeX);
+        assertEquals(expectedY, cluster.modeY);
 
     }
 
+    @DisplayName("중심좌표로부터 CMaxDist 구하기")
+    @Test
+    void testUpdateCMaxDistFromCenterOneUnit(){
+        double expectedMaxDistFromCenter = 0;
+        cluster.updateCMaxDistFromCenter();
+
+        assertEquals(expectedMaxDistFromCenter, cluster.maxDistFromCenter);
+    }
 }
